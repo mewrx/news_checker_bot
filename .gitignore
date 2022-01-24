@@ -134,5 +134,6 @@ dmypy.json
 .tg_bot/
 test.py
 test.*
-db_map.py
-data/
+data/articles_dict.json
+data/index.html
+users.db
