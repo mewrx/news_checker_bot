@@ -20,4 +20,4 @@ Run bot:
 ```
 
 # License
-The code in this repository is released under MIT License.
+The code in this repository is released under `MIT License`.
