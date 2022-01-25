@@ -1,41 +1,38 @@
 import json
 import re
-import time
-from datetime import datetime
 from os import getenv
 
 import requests
 from bs4 import BeautifulSoup
 
 
-def download_page(url:str, path:str):
+def download_page(url: str, path: str):
+    """
+    Download page as `html` file.
+    """
+
     headers = {
-        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36"
+        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,"
+        "image/avif,image/webp,image/apng,*/*;q=0.8,"
+        "application/signed-exchange;v=b3;q=0.9",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36"
+        " (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36"
     }
     req = requests.get(url, headers=headers)
-    with open(path, "w") as file:
+    with open(path, "w", encoding="utf-8") as file:
         file.write(req.text)
 
 
-def timestamp_from_date(date:str):
-    """Get unix timestamp from string like 23.01.2022"""
-
-    return time.mktime(datetime.strptime(date + (' 00:00:00'), '%d.%m.%Y %H:%M:%S').timetuple())
-
-
-def parse_html(html_patn:str,json_path:str):
+def parse_html(html_patn: str, json_path: str):
     """
     Parse `html` file with `search_dict` to news and append data into `json`.
 
     Return only fresh news.
     """
 
-
-    # Initialise vars.
-    with open(html_patn) as file:
+    with open(html_patn, encoding="utf-8") as file:
         src = file.read()
-    with open(json_path, "r") as file:
+    with open(json_path, "r", encoding="utf-8") as file:
         articles_list = json.load(file)
     soup = BeautifulSoup(src, "lxml")
     fresh_articles = {}
@@ -71,35 +68,31 @@ def parse_html(html_patn:str,json_path:str):
     ]
     articles = soup.find_all(string=search_dict)
 
-
     for items in articles:
         article = items.find_parent("article")
         post_title = article.find("a").text
         post_link = article.find("a").get("href")
         article_id = post_link.split('/')[-2]
-        timestamp = timestamp_from_date(article.find(class_="entry-date").text)
-        
-
         # Pass not interested articles
-        if article.find(string=exclude_dict) is not None:
-            continue
-        elif article_id not in articles_list:
-            fresh_articles[article_id] = {
-                "Title": post_title,
-                "Post_link": post_link,
-                "Timestamp": timestamp,
-            }
-            # Append fresh news to all
-            articles_list.update(fresh_articles)
-            with open(json_path, "w", encoding="utf-8") as file:
-                json.dump(articles_list, file, indent=4, ensure_ascii=False)
+        if not article.find(string=exclude_dict):
+            if article_id not in articles_list:
+                fresh_articles[article_id] = {
+                    "Title": post_title,
+                    "Post_link": post_link
+                }
+                # Append fresh news to all
+                articles_list.update(fresh_articles)
+                with open(json_path, "w", encoding="utf-8") as news:
+                    json.dump(
+                        articles_list, news, indent=4, ensure_ascii=False
+                        )
     return fresh_articles
 
 
 def check_news_update():
     """
     Check for new articles in site https://www.ukr.net/news/main.html
-    
+
     Download a news page. Find fresh news in downloaded `html` file.
     Write all news into `json` file. Return `dict` with only fresh.
     """
@@ -109,12 +102,8 @@ def check_news_update():
     json_path = "data/articles_dict.json"
 
     download_page(url, html_patn)
-    return parse_html(html_patn,json_path)
-
-
-def main():
-    check_news_update()
+    return parse_html(html_patn, json_path)
 
 
 if __name__ == '__main__':
-    main()
+    check_news_update()
