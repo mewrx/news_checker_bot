@@ -88,7 +88,24 @@ async def process_start_command(msg: types.Message):
 
 @dp.message_handler(commands=['help'])
 async def process_help_command(msg: types.Message):
-    await msg.answer("Привіт!\nЯк тільки появляться свіжі новини, я зразу поділюсь з тобою.")
+    if chat_id == str(msg.from_user.id):
+        await msg.answer("""
+        Привіт! Як тільки появляться свіжі новини, зразу поділюсь ними.
+
+        Команди:
+        /help - переглянути це меню
+        /last - останні три новини
+        /admin - адмін-панель
+        /log - вигрузити лог файл
+        """)
+    else:
+        await msg.answer("""
+        Привіт! Як тільки появляться свіжі новини, зразу поділюсь ними.
+
+        Команди:
+        /help - переглянути це меню
+        /last - останні три новини
+        """)
 
 @dp.message_handler(commands=['admin'])
 @is_admin
@@ -116,6 +133,11 @@ async def action_cancel(message: types.Message):
 async def action_cancel(message: types.Message):
     remove_keyboard = types.ReplyKeyboardRemove()
     await message.answer("Як скажеш.", reply_markup=remove_keyboard)
+
+@dp.message_handler(commands=['log'])
+@is_admin
+async def get_last_5_news(msg: types.Message):
+    await msg.reply_document(open('bot.log', 'rb'))
 
 @dp.message_handler(commands=['last'])
 async def get_last_5_news(msg: types.Message):
