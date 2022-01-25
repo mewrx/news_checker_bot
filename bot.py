@@ -1,34 +1,41 @@
-from ast import Str
 import asyncio
+import itertools
+import json
+import logging
 import os
 import random
-import time
+from ast import Str
 from os import getenv
 from parser import check_news_update
 
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
-from sqlalchemy import create_engine
+from sqlalchemy import JSON, create_engine
 from sqlalchemy.orm import Session
 
 from db_map import Base, UsersIds
+from decorators import is_admin
+
+# logging.basicConfig(level=logging.INFO)
+logging.basicConfig(filename='bot.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 
 TOKEN = getenv("BOT_TOKEN")
 chat_id = getenv("ADMIN_ID")
 DB_FILENAME = getenv("DB_FILENAME")
 
+if not TOKEN or not DB_FILENAME or not chat_id:
+    exit("Error: no enviroment variables provided")
+
 bot = Bot(token=TOKEN, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot)
-
 
 async def db_initial():
     engine = create_engine(f'sqlite:///{DB_FILENAME}')
     if not os.path.isfile(f'./{DB_FILENAME}'):
         Base.metadata.create_all(engine)
-    iss = Session(bind=engine)
-    return iss
-
+    session = Session(bind=engine)
+    return session
 
 async def setup_new_user(user: types.User):
     """
@@ -60,7 +67,6 @@ async def send_for_all(msg: Str):
     for u in session.query(UsersIds).all():
         await bot.send_message(u.user_id, msg)
 
-
 async def news_checker():
     while True:
         fresh_news = check_news_update()
@@ -70,42 +76,63 @@ async def news_checker():
                 title = v[1]["Title"]
                 mssg = f'<a href="{link}">{title}</a>'
                 await send_for_all(mssg)
-        print(time.strftime("[%H:%M] ") + "Чекер пройшов одне коло")
         await asyncio.sleep(random.randint(1200,3600))
 
 
 @dp.message_handler(commands=['start'])
 async def process_start_command(msg: types.Message):
-    await msg.answer("***********************")
     if await setup_new_user(msg.from_user):
         await msg.answer("Привіт!\nЯк тільки появляться свіжі новини, я зразу поділюсь з тобою.")
     else:
         await msg.answer("Привіт! З поверненням.")
 
-
 @dp.message_handler(commands=['help'])
 async def process_help_command(msg: types.Message):
     await msg.answer("Привіт!\nЯк тільки появляться свіжі новини, я зразу поділюсь з тобою.")
 
-
-@dp.message_handler(commands=['news'])
+@dp.message_handler(commands=['admin'])
+@is_admin
 async def process_start_command(message: types.Message):
-    try:
-        fresh_news = check_news_update()
-        if len(fresh_news) >= 1:
-            for v in fresh_news.items():
-                link = v[1]["Post_link"]
-                title = v[1]["Title"]
-                await bot.send_message(message.from_user.id, link)
-    except:
-        await bot.send_message(message.from_user.id, "Щось пішло не так ( •_•)")
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    buttons = ["Розмір бази", "Вигрузити базу", "Відмінити"]
+    keyboard.add(*buttons)
+    await message.answer("Радий вас бачити, власник!\n", reply_markup=keyboard)
 
+@dp.message_handler(lambda message: message.text == "Вигрузити базу")
+@is_admin
+async def action_cancel(message: types.Message):
+    remove_keyboard = types.ReplyKeyboardRemove()
+    await message.answer("Відправляю..", reply_markup=remove_keyboard)
+    await message.reply_document(open(DB_FILENAME, 'rb'))
+
+@dp.message_handler(lambda message: message.text == "Розмір бази")
+@is_admin
+async def action_cancel(message: types.Message):
+    session = await db_initial()
+    lenght = session.query(UsersIds).count()
+    await message.answer(f"{lenght} rows in data base.")
+
+@dp.message_handler(lambda message: message.text == "Відмінити")
+async def action_cancel(message: types.Message):
+    remove_keyboard = types.ReplyKeyboardRemove()
+    await message.answer("Як скажеш.", reply_markup=remove_keyboard)
+
+@dp.message_handler(commands=['last'])
+async def get_last_5_news(msg: types.Message):
+    """
+    Send 3 last news
+    """
+    json_path = "data/articles_dict.json"
+    with open(json_path, "r") as f:
+        articles_list = json.load(f)
+    for i in itertools.islice(reversed(articles_list.items()), 0, 3):
+        link = i[1]["Post_link"]
+        title = i[1]["Title"]
+        mssg = f'<a href="{link}">{title}</a>'
+        await msg.answer(mssg)
 
 @dp.message_handler()
 async def echo_message(msg: types.Message):
-    # await bot.send_message(msg.from_user.id, msg.text)
-    # Всі повідомлення перенаправляти не треба, можуть ламанути
-    # escape_md() і quote_html() з aiogram.utils.markdown можуть екранувати такі символи
     pass
 
 if __name__ == '__main__':

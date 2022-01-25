@@ -16,7 +16,6 @@ def download_page(url:str, path:str):
     req = requests.get(url, headers=headers)
     with open(path, "w") as file:
         file.write(req.text)
-    print("Downloaded new html page")
 
 
 def timestamp_from_date(date:str):
@@ -62,6 +61,7 @@ def parse_html(html_patn:str,json_path:str):
         re.compile('[П,п]еревір'),
         re.compile('[З,з]он')
         ]
+
     exclude_dict = [
         re.compile('[П,п]осад'),
         re.compile('[К,к]онкурс'),
@@ -82,17 +82,8 @@ def parse_html(html_patn:str,json_path:str):
 
         # Pass not interested articles
         if article.find(string=exclude_dict) is not None:
-            print("Artickle passed")
-            print(post_title)
             continue
-
-
-        if article_id in articles_list:
-            print("Already exist")
-        else:
-            print("Found new item")
-            
-
+        elif article_id not in articles_list:
             fresh_articles[article_id] = {
                 "Title": post_title,
                 "Post_link": post_link,
