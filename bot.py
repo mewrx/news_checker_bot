@@ -85,7 +85,7 @@ async def news_checker():
                 title = news[1]["Title"]
                 mssg = f'<a href="{link}">{title}</a>'
                 await send_for_all(mssg)
-        await asyncio.sleep(random.randint(1200, 3600))
+        await asyncio.sleep(random.randint(3600, 7200))
 
 
 @dp.message_handler(commands=['start'])
@@ -162,14 +162,16 @@ async def get_log_file(msg: types.Message):
 
 
 @dp.message_handler(commands=['last'])
-async def get_last_5_news(msg: types.Message):
+async def get_last_3_news(msg: types.Message):
     """
     Send 3 last news
     """
     json_path = "data/articles_dict.json"
     with open(json_path, "r", encoding="utf-8") as news:
         articles_list = json.load(news)
-    for i in itertools.islice(reversed(articles_list.items()), 0, 3):
+    # for i in itertools.islice(reversed(articles_list.items()), 0, 3):
+    dict_len = len(articles_list.items())
+    for i in itertools.islice(articles_list.items(), dict_len-3, dict_len):
         link = i[1]["Post_link"]
         title = i[1]["Title"]
         mssg = f'<a href="{link}">{title}</a>'
