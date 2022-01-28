@@ -64,7 +64,9 @@ def parse_html(html_patn: str, json_path: str):
         re.compile('[К,к]онкурс'),
         re.compile('[Б,б]лагодій'),
         re.compile('[З,з]асідання'),
-        re.compile('[К,к]омісі')
+        re.compile('[К,к]омісі'),
+        re.compile('[П,п]роект'),
+        re.compile('[П,п]питан')
     ]
     articles = soup.find_all(string=search_dict)
 
