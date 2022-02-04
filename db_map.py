@@ -7,6 +7,8 @@ Base = declarative_base()
 # sqlalchemy База для взаємодії бота з БД як з Обєктом
 # Тут описано що і для чого
 # https://surik00.gitbooks.io/aiogram-lessons/content/chapter2.html
+
+
 class UsersIds(Base):
     __tablename__ = 'Users'
     id = Column(Integer, primary_key=True)

@@ -1,8 +1,6 @@
 # News Checker Bot
 > Telegram bot for checking news.
 
-<img src="https://0x0.st/oows.png" alt="Earth" height="300">
-
 # Requirements
 - Python 3.8+
 
