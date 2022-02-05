@@ -22,7 +22,8 @@ from decorators import is_admin
 logging.basicConfig(
     filename='bot.log',
     filemode='w',
-    format='%(name)s - %(levelname)s - %(message)s'
+    format='[%(asctime)s] - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%d-%m-%y %H:%M:%S'
 )
 
 TOKEN = getenv("BOT_TOKEN")

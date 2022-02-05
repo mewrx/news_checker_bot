@@ -1,9 +1,11 @@
 import json
+import logging
 import re
 from os import getenv
 
 import requests
 from bs4 import BeautifulSoup
+from requests.exceptions import ConnectionError
 
 
 def download_page(url: str, path: str):
@@ -18,7 +20,11 @@ def download_page(url: str, path: str):
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36"
         " (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36"
     }
-    req = requests.get(url, headers=headers)
+    try:
+        req = requests.get(url, headers=headers)
+    except ConnectionError:
+        logging.error('We have lose the connection!')
+        return
     with open(path, "w", encoding="utf-8") as file:
         file.write(req.text)
 
@@ -75,12 +81,15 @@ def parse_html(html_patn: str, json_path: str):
         post_title = article.find("a").text
         post_link = article.find("a").get("href")
         article_id = post_link.split('/')[-2]
+        timestamp = article.find(class_="entry-date").text
+
         # Pass not interested articles
         if not article.find(string=exclude_dict):
             if article_id not in articles_list:
                 fresh_articles[article_id] = {
                     "Title": post_title,
-                    "Post_link": post_link
+                    "Post_link": post_link,
+                    "Timestamp": timestamp
                 }
                 # Append fresh news to all
                 articles_list.update(fresh_articles)
@@ -88,6 +97,20 @@ def parse_html(html_patn: str, json_path: str):
                     json.dump(
                         articles_list, news, indent=4, ensure_ascii=False
                         )
+                print(post_title)
+            elif timestamp != articles_list[article_id]["Timestamp"]:
+                fresh_articles[article_id] = {
+                    "Title": post_title,
+                    "Post_link": post_link,
+                    "Timestamp": timestamp
+                }
+                # Append fresh news to all
+                articles_list.update(fresh_articles)
+                with open(json_path, "w", encoding="utf-8") as news:
+                    json.dump(
+                        articles_list, news, indent=4, ensure_ascii=False
+                        )
+                print(post_title)
     return fresh_articles
 
 
